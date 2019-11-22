@@ -1,5 +1,6 @@
 import os
 import pycurl
+import sqlite3
 from io import BytesIO
 from bs4 import BeautifulSoup
 
