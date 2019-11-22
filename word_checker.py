@@ -1,4 +1,5 @@
 import os
+import time
 import pycurl
 import sqlite3
 from io import BytesIO
@@ -7,25 +8,65 @@ from bs4 import BeautifulSoup
 class WordDirectory():
     def __init__(self, all_words):
         self.all_words = all_words
-        self.memory = self._init_memory()
+        try:
+            self._init_memory()
+            self.use_memory = True
+        except Exception as e:
+            print('|{}| error occurred. No memory will be using.'.format(e))
+            self.use_memory = False
 
     def checkout(self, word):
+        if self.use_memory():
+            self.c.execute("Select * FROM mydictionary WHERE WORD LIKE '{}'".format(word))
+            x = self.c.fetchone()
+            if x:
+                explain = dict(word=x[0], meanings=x[1], examples=x[2], date=x[3])
+                return explain
+
         if word not in self.all_words:
-            print('{} is not a valid word'.format(word))
-            return '{} is not a valid word'.format(word)
+            print('{} is not a valid word.'.format(word))
+            return '{} is not a valid word.'.format(word)
         explain = checkout_word(word)
-        self._buffer_memory(word, explain)
+        explain['word'] = word
+        explain['datestr'] = time.ctime()
+        self._buffer_memory(explain)
         return explain
 
-    def _buffer_memory(self, word, explain):
-        # print('Remember {} as \n{}'.format(word, explain))
-        pass
+    def _buffer_memory(self, entry):
+        if not self.use_memory:
+            print('No memory buffered.')
+            return
+        print('Remembering {}.'.format(entry['word']))
+        self.c.execute("INSERT INTO mydictionary VALUES ('{word}', '{meanings}', '{examples}', '{datestr}')".format(**entry))
+
+    def _recall_memory(self):
+        if not self.use_memory:
+            print('No memory to recall.')
+            return
+        self.c.execute("Select word FROM mydictionary")
+        print([e[0] for e in self.c.fetchall()])
 
     def _solid_memory(self):
-        pass
+        if not self.use_memory:
+            print('No memory solidified.')
+        self.conn.commit()
 
     def _init_memory(self):
-        return 0
+        conn = sqlite3.connect(os.path.join('memory', 'memory.db'))
+        c = conn.cursor()
+
+        try:
+            c.execute("SELECT word FROM mydictionary")
+        except sqlite3.OperationalError as e:
+            print(e)
+            c.execute('''CREATE TABLE mydictionary (word text, meanings text, examples text, datestr text)''')
+            c.execute("SELECT word FROM mydictionary")
+        finally:
+            print('I remember these words:')
+            print(c.fetchall())
+
+        self.conn = conn
+        self.c = c
 
 
 # Fetch html from given url
@@ -76,20 +117,21 @@ def checkout_word(word):
         # Return False for others
         return False
 
-    output = {
-        'meanings': [],
-        'examples': []
-        }
-
     # Output good tags for explain entry
+    meanings = []
     for tag in explain.recursiveChildGenerator():
         if goodtag(tag):
-            output['meanings'].append(shrink(tag.get_text()))
+            meanings.append(shrink(tag.get_text()))
 
     # Output all example sentences
     # Useless stuffs like 'Read more...' should be removed by shrink
-    output['examples'].append(shrink(assets.get_text()))
+    examples = []
+    examples.append(shrink(assets.get_text()))
 
+    output = {
+        'meanings': '\n'.join(meanings),
+        'examples': '\n'.join(examples)
+        }
     return output
 
 
