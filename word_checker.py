@@ -1,57 +1,64 @@
 import os
 import time
-import pycurl
+import requests
 import sqlite3
 from io import BytesIO
 from bs4 import BeautifulSoup
 
 class WordDirectory():
-    def __init__(self, all_words):
+    def __init__(self, all_words, quiet=False):
         self.all_words = all_words
         try:
-            self._init_memory()
+            self._init_memory(quiet=quiet)
             self.use_memory = True
         except Exception as e:
             print('|{}| error occurred. No memory will be using.'.format(e))
             self.use_memory = False
 
-    def checkout(self, word):
-        if self.use_memory():
-            self.c.execute("Select * FROM mydictionary WHERE WORD LIKE '{}'".format(word))
+    def checkout(self, word, quiet=False):
+        if self.use_memory:
+            self.c.execute("Select * FROM mydictionary WHERE word LIKE '{}'".format(word))
             x = self.c.fetchone()
             if x:
-                explain = dict(word=x[0], meanings=x[1], examples=x[2], date=x[3])
+                if not quiet:
+                    print('I remember {}.'.format(word))
+                explain = dict(word=x[0], meanings=x[1], examples=x[2], datestr=x[3])
                 return explain
 
         if word not in self.all_words:
             print('{} is not a valid word.'.format(word))
             return '{} is not a valid word.'.format(word)
-        explain = checkout_word(word)
-        explain['word'] = word
-        explain['datestr'] = time.ctime()
-        self._buffer_memory(explain)
+        explain = checkout_word(word, quiet=True)
+
+        if all([explain['meanings']]):
+            self._buffer_memory(explain, quiet)
+        else:
+            print('{} is broken, not remember.'.format(word))
+
         return explain
 
-    def _buffer_memory(self, entry):
+    def _buffer_memory(self, entry, quiet):
         if not self.use_memory:
             print('No memory buffered.')
             return
-        print('Remembering {}.'.format(entry['word']))
-        self.c.execute("INSERT INTO mydictionary VALUES ('{word}', '{meanings}', '{examples}', '{datestr}')".format(**entry))
+        if not quiet:
+            print('Remembering {}.'.format(entry['word']))
+        self.c.execute("INSERT INTO mydictionary(word, dictname, meanings, examples) VALUES(?, ?, ?, ?)",
+        (entry['word'], entry['dictname'], entry['meanings'], entry['examples']))
 
     def _recall_memory(self):
         if not self.use_memory:
             print('No memory to recall.')
             return
         self.c.execute("Select word FROM mydictionary")
-        print([e[0] for e in self.c.fetchall()])
+        return [e[0] for e in self.c.fetchall()]
 
     def _solid_memory(self):
         if not self.use_memory:
             print('No memory solidified.')
         self.conn.commit()
 
-    def _init_memory(self):
+    def _init_memory(self, quiet):
         conn = sqlite3.connect(os.path.join('memory', 'memory.db'))
         c = conn.cursor()
 
@@ -59,11 +66,17 @@ class WordDirectory():
             c.execute("SELECT word FROM mydictionary")
         except sqlite3.OperationalError as e:
             print(e)
-            c.execute('''CREATE TABLE mydictionary (word text, meanings text, examples text, datestr text)''')
+            c.execute('''CREATE TABLE mydictionary (word text, dictname text, meanings text, examples text)''')
             c.execute("SELECT word FROM mydictionary")
         finally:
-            print('I remember these words:')
-            print(c.fetchall())
+            # c.execute("CREATE INDEX index_word ON mydictionary(word);")
+            print('I remember [{}] words.'.format(len(c.fetchall())))
+            c.execute("PRAGMA table_info(mydictionary)")
+            print('Format are.')
+            [print(e) for e in c.fetchall()]
+            if not quiet:
+                print('I remember these words:')
+                print([e[0] for e in c.fetchall()])
 
         self.conn = conn
         self.c = c
@@ -71,19 +84,19 @@ class WordDirectory():
 
 # Fetch html from given url
 def fetch_url(url):
-    buffer = BytesIO()
-    c = pycurl.Curl()
-    c.setopt(pycurl.USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 6.1; it; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3 (.NET CLR 3.5.30729)')
-    c.setopt(c.URL, url)
-    c.setopt(c.WRITEDATA, buffer)
-    c.perform()
-    c.close()
-    return buffer.getvalue()
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 6.1; it; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3 (.NET CLR 3.5.30729)'}
+    response = requests.get(url, headers=headers)
+    return response.content
 
 
 # Checkout the word from collinsdictionary.com
-def checkout_word(word):
-    print('{}'.format(word))
+def checkout_word(word, quiet=False):
+
+    def _print(message, quiet=quiet):
+        if not quiet:
+            print('<--', message, '-->')
+
+    _print('{}'.format(word))
     url = 'https://www.collinsdictionary.com/dictionary/english/{}'.format(word)
     # Fetch html
     html = fetch_url(url)
@@ -98,13 +111,28 @@ def checkout_word(word):
         while '\n\n' in string:
             string = string.replace('\n\n', '\n')
         # Removing other stuffs like 'Read more...'
-        string = string.replace('\'', '\"')
         string = string.replace('\n)', ')').replace(')', ')\n').replace('Read more…', '').replace('Show more...','')
         # Return stripped string
         return string.strip()
 
-    # Get explain entry using Cob_Adv_Brit, don't know what dictionary it is, but it seems pretty.
-    explain = soup.find('div', 'dictionary Cob_Adv_Brit')
+    _print(url)
+    _print('Available dictionaries:')
+    dictionary_name = ''
+    for divs in soup.find_all('div', 'dictionaries dictionary'):
+        for div in divs.recursiveChildGenerator():
+            if hasattr(div, 'attrs'):
+                if 'class' in div.attrs:
+                    cls = ' '.join(div.attrs['class'])
+                    if cls.startswith('dictionary '):
+                        _print(cls)
+                        # Setup dictionary_name as first met dictionary
+                        if not dictionary_name:
+                            dictionary_name = cls
+
+    # Get explain entry using dictionary [dictionary_name]
+    explain = soup.find('div', dictionary_name)
+    _print('Using {}'.format(dictionary_name))
+
     # Get example sentences containing the word, it is called assets in current site
     assets = soup.find('div', 'assets')
 
@@ -119,18 +147,22 @@ def checkout_word(word):
 
     # Output good tags for explain entry
     meanings = []
-    for tag in explain.recursiveChildGenerator():
-        if goodtag(tag):
-            meanings.append(shrink(tag.get_text()))
+    if explain:
+        for tag in explain.recursiveChildGenerator():
+            if goodtag(tag):
+                meanings.append(shrink(tag.get_text()))
 
     # Output all example sentences
     # Useless stuffs like 'Read more...' should be removed by shrink
     examples = []
-    examples.append(shrink(assets.get_text()))
+    if assets:
+        examples.append(shrink(assets.get_text()))
 
     output = {
+        'word': word,
+        'dictname': dictionary_name,
         'meanings': '\n'.join(meanings),
-        'examples': '\n'.join(examples)
+        'examples': '\n'.join(examples),
         }
     return output
 
@@ -154,4 +186,4 @@ for j in range(10):
 print('Loading all_words done.', '{} words found.'.format(len(all_words)))
 
 # Build my dictionary
-mydictionary = WordDirectory(all_words)
+mydictionary = WordDirectory(all_words, quiet=True)
