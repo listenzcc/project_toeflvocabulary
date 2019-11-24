@@ -6,8 +6,7 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 
 class WordDirectory():
-    def __init__(self, all_words, quiet=False):
-        self.all_words = all_words
+    def __init__(self, quiet=False):
         try:
             self._init_memory(quiet=quiet)
             self.use_memory = True
@@ -22,12 +21,9 @@ class WordDirectory():
             if x:
                 if not quiet:
                     print('I remember {}.'.format(word))
-                explain = dict(word=x[0], meanings=x[1], examples=x[2], datestr=x[3])
+                explain = dict(word=x[0], dictname=x[1], meanings=x[2], examples=x[3])
                 return explain
 
-        if word not in self.all_words:
-            print('{} is not a valid word.'.format(word))
-            return '{} is not a valid word.'.format(word)
         explain = checkout_word(word, quiet=True)
 
         if all([explain['meanings']]):
@@ -69,8 +65,11 @@ class WordDirectory():
             c.execute('''CREATE TABLE mydictionary (word text, dictname text, meanings text, examples text)''')
             c.execute("SELECT word FROM mydictionary")
         finally:
-            # c.execute("CREATE INDEX index_word ON mydictionary(word);")
             print('I remember [{}] words.'.format(len(c.fetchall())))
+            try:
+                c.execute("CREATE INDEX word_index ON mydictionary (word)")
+            except sqlite3.OperationalError as e:
+                pass
             c.execute("PRAGMA table_info(mydictionary)")
             print('Format are.')
             [print(e) for e in c.fetchall()]
@@ -183,7 +182,10 @@ for j in range(10):
     # print(fname)
     all_words += get_words(fname)
 
+for e in ['regulatory', 'sharply']:
+    all_words.pop(all_words.index(e))
+
 print('Loading all_words done.', '{} words found.'.format(len(all_words)))
 
 # Build my dictionary
-mydictionary = WordDirectory(all_words, quiet=True)
+mydictionary = WordDirectory(quiet=True)
