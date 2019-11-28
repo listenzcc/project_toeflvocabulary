@@ -26,7 +26,7 @@ class Resquest(BaseHTTPRequestHandler):
             word = random_word()
             print(word)
         word_explains = explain_word(word)
-        pprint(word_explains)
+        # pprint(word_explains)
         for name in word_explains:
             Right_side_contents.append(wrap('h2', name))
             Right_side_contents.append(wrap('p', word_explains[name]))

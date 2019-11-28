@@ -107,10 +107,34 @@ def dumps_word_explain(explain):
             explain_dumps['_'.join([result, name])] = json.dumps(explain[result][name])
     return explain_dumps
 
+def parse_explain_dumps(explain_dumps):
+    good_explain = explain_dumps.copy()
+    for name in explain_dumps:
+        print(name)
+        if name == 'dict_result_edict':
+            mydict = json.loads(explain_dumps[name])
+            print(mydict)
+            block = []
+            block.append('<div style="border:1px solid red;"><ol>')
+            for entry in mydict['item'][0]['tr_group']:
+                # tr
+                block.append('<li>{}</li>'.format(entry['tr'][0]))
+                # example
+                block.append('<ul>')
+                [block.append('<li>{}</li>'.format(e)) for e in entry['example']]
+                block.append('</ul>')
+                # similar_word
+                if entry['similar_word']:
+                    block.append('<p>Synonym: {}</p>'.format(', '.join(entry['similar_word'])))
+            block.append('</ol></div>')
+            good_explain[name] = '\n'.join(block)
+
+    return good_explain
+
 # Very backend explainer of the given word.
 # Continuely improve.
 def explain_word(word):
-    return dumps_word_explain(checkout_word(word))
+    return parse_explain_dumps(dumps_word_explain(checkout_word(word)))
 
 if __name__ == '__main__':
     word = random_word()
