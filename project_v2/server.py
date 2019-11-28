@@ -34,11 +34,11 @@ class Resquest(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        with open(os.path.join('html_format', 'text.html')) as f:
+        with open(os.path.join('html_format', 'text.html'), 'r') as f:
             s = f.readlines()
             html = ''.join(s).format(query_word=word, Right_side_contents='\n'.join(Right_side_contents))
 
-        self.wfile.write(html.encode()) # json.dumps(data).encode())
+        self.wfile.write(html.encode('gbk')) # json.dumps(data).encode())
 
 
 if __name__ == '__main__':

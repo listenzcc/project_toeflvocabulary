@@ -111,9 +111,32 @@ def parse_explain_dumps(explain_dumps):
     good_explain = explain_dumps.copy()
     for name in explain_dumps:
         print(name)
+        if name in ['trans_result_from', 'trans_result_status', 'trans_result_to', 'trans_result_type']:
+            good_explain.pop(name)
+
+        if name == 'trans_result_data':
+            mydict = json.loads(explain_dumps[name])[0]
+            # print(mydict)
+            block = []
+            block.append('<div style="border:1px solid red;">')
+            block.append('{}, {}'.format(mydict['src'], mydict['dst']))
+            block.append('</div>')
+            good_explain[name] = '\n'.join(block)
+
+        if name == 'trans_result_phonetic':
+            mylist = json.loads(explain_dumps[name])
+            print(mylist)
+            block = []
+            block.append('<div style="border:1px solid red;">')
+            block.append('<p>{}</p>'.format(' '.join([e['src_str'] for e in mylist])))
+            block.append('<p>{}</p>'.format(' '.join([e['trg_str'] for e in mylist])))
+            block.append('</div>')
+            good_explain[name] = '\n'.join(block)
+
+
         if name == 'dict_result_edict':
             mydict = json.loads(explain_dumps[name])
-            print(mydict)
+            # print(mydict)
             block = []
             block.append('<div style="border:1px solid red;"><ol>')
             for entry in mydict['item'][0]['tr_group']:
