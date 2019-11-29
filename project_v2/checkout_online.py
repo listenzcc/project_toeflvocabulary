@@ -119,14 +119,20 @@ def parse_explain_dumps(explain_dumps):
             ]:
             good_explain.pop(name)
 
-        if name == 'dict_result_collins':
+        if name == 'dict_result_oxford':
             mydict = json.loads(explain_dumps[name])
             # pprint(mydict)
             block = []
             block.append('<div style="border:1px solid red;"><ol>')
+            block.append('</ol></div>')
+            pass
+
+        if name == 'dict_result_collins':
+            mydict = json.loads(explain_dumps[name])
+            pprint(mydict)
+            block = []
+            block.append('<div style="border:1px solid red;"><ol>')
             for entry in mydict['entry']:
-                print('-' * 80)
-                pprint(entry)
                 if entry['type'] == 'boxr':
                     block.append('<div style="border:1px solid blue">')
                     block.append('<p>{}</p>'.format(entry['value'][0]['boxr_value']))
@@ -135,16 +141,18 @@ def parse_explain_dumps(explain_dumps):
                     block.append('<li>{}, {}</li>'.format(entry['value'][0]['posp'][0]['label'], entry['value'][0]['tran']))
                     block.append('<p>{}</p>'.format(entry['value'][0]['def']))
                     block.append('<ul>')
-                    for example in entry['value'][0]['mean_type']:
-                        example_dict = example['example'][0]
-                        block.append('<li>{}</li><p>{}</p>'.format(example_dict['ex'], example_dict['tran']))
-                    block.append('</ul>')
+                    for value_dict in entry['value']:
+                        for example in value_dict['mean_type']:
+                            for example_dict in example.get('example', []):
+                                block.append('<li>{}</li><p>{}</p>'.format(example_dict['ex'], example_dict['tran']))
+                        block.append('</ul>')
                 if entry['type'] == 'rnon':
                     block.append('<div style="border:1px solid green"><ul>')
-                    for mean in entry['value'][0]['mean']:
-                        for mean_type_dict in mean['mean_type']:
-                            example_dict = mean_type_dict['example'][0]
-                            block.append('<li><b>{}</b></li><p>{}</p><p>{}</p>'.format(entry['value'][0]['head_word'], example_dict['ex'], example_dict['tran']))
+                    for value_dict in entry['value']:
+                        for mean in value_dict['mean']:
+                            for mean_type_dict in mean.get('mean_type', []):
+                                for example_dict in mean_type_dict.get('example', []):
+                                    block.append('<li><b>{}</b></li><p>{}</p><p>{}</p>'.format(entry['value'][0]['head_word'], example_dict['ex'], example_dict['tran']))
                     block.append('</ul></div>')
 
             block.append('</ol></div>')
@@ -172,20 +180,24 @@ def parse_explain_dumps(explain_dumps):
 
         if name == 'dict_result_edict':
             mydict = json.loads(explain_dumps[name])
-            # print(mydict)
+            # pprint(mydict)
             block = []
-            block.append('<div style="border:1px solid red;"><ol>')
-            for entry in mydict['item'][0]['tr_group']:
-                # tr
-                block.append('<li>{}</li>'.format(entry['tr'][0]))
-                # example
-                block.append('<ul>')
-                [block.append('<li>{}</li>'.format(e)) for e in entry['example']]
-                block.append('</ul>')
-                # similar_word
-                if entry['similar_word']:
-                    block.append('<p>Synonym: {}</p>'.format(', '.join(entry['similar_word'])))
-            block.append('</ol></div>')
+            block.append('<div style="border:1px solid red;">')
+            for item_dict in mydict['item']:
+                block.append('<ol>')
+                block.append('<b>{}</b>'.format(item_dict['pos']))
+                for entry in item_dict['tr_group']:
+                    # tr
+                    block.append('<li>{}</li>'.format(entry['tr'][0]))
+                    # example
+                    block.append('<ul>')
+                    [block.append('<li>{}</li>'.format(e)) for e in entry['example']]
+                    block.append('</ul>')
+                    # similar_word
+                    if entry['similar_word']:
+                        block.append('<p>Synonym: {}</p>'.format(', '.join(entry['similar_word'])))
+                block.append('</ol>')
+            block.append('</div>')
             good_explain[name] = '\n'.join(block)
 
     return good_explain
