@@ -121,7 +121,7 @@ def parse_explain_dumps(explain_dumps):
 
         if name == 'dict_result_collins':
             mydict = json.loads(explain_dumps[name])
-            pprint(mydict)
+            # pprint(mydict)
             block = []
             block.append('<div style="border:1px solid red;"><ol>')
             for entry in mydict['entry']:
