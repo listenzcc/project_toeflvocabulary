@@ -38,7 +38,7 @@ class Resquest(BaseHTTPRequestHandler):
             s = f.readlines()
             html = ''.join(s).format(query_word=word, Right_side_contents='\n'.join(Right_side_contents))
 
-        self.wfile.write(html.encode('gbk')) # json.dumps(data).encode())
+        self.wfile.write(html.encode('utf-8', errors='ignore')) # json.dumps(data).encode())
 
 
 if __name__ == '__main__':

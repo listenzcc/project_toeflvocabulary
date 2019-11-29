@@ -111,8 +111,44 @@ def parse_explain_dumps(explain_dumps):
     good_explain = explain_dumps.copy()
     for name in explain_dumps:
         print(name)
-        if name in ['trans_result_from', 'trans_result_status', 'trans_result_to', 'trans_result_type']:
+        if name in [
+            'trans_result_from',
+            'trans_result_status',
+            'trans_result_to',
+            'trans_result_type',
+            ]:
             good_explain.pop(name)
+
+        if name == 'dict_result_collins':
+            mydict = json.loads(explain_dumps[name])
+            pprint(mydict)
+            block = []
+            block.append('<div style="border:1px solid red;"><ol>')
+            for entry in mydict['entry']:
+                print('-' * 80)
+                pprint(entry)
+                if entry['type'] == 'boxr':
+                    block.append('<div style="border:1px solid blue">')
+                    block.append('<p>{}</p>'.format(entry['value'][0]['boxr_value']))
+                    block.append('</div>')
+                if entry['type'] == 'mean':
+                    block.append('<li>{}, {}</li>'.format(entry['value'][0]['posp'][0]['label'], entry['value'][0]['tran']))
+                    block.append('<p>{}</p>'.format(entry['value'][0]['def']))
+                    block.append('<ul>')
+                    for example in entry['value'][0]['mean_type']:
+                        example_dict = example['example'][0]
+                        block.append('<li>{}</li><p>{}</p>'.format(example_dict['ex'], example_dict['tran']))
+                    block.append('</ul>')
+                if entry['type'] == 'rnon':
+                    block.append('<div style="border:1px solid green"><ul>')
+                    for mean in entry['value'][0]['mean']:
+                        for mean_type_dict in mean['mean_type']:
+                            example_dict = mean_type_dict['example'][0]
+                            block.append('<li><b>{}</b></li><p>{}</p><p>{}</p>'.format(entry['value'][0]['head_word'], example_dict['ex'], example_dict['tran']))
+                    block.append('</ul></div>')
+
+            block.append('</ol></div>')
+            good_explain[name] = '\n'.join(block)
 
         if name == 'trans_result_data':
             mydict = json.loads(explain_dumps[name])[0]
@@ -125,7 +161,7 @@ def parse_explain_dumps(explain_dumps):
 
         if name == 'trans_result_phonetic':
             mylist = json.loads(explain_dumps[name])
-            print(mylist)
+            # print(mylist)
             block = []
             block.append('<div style="border:1px solid red;">')
             block.append('<p>{}</p>'.format(' '.join([e['src_str'] for e in mylist])))
