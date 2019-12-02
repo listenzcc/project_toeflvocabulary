@@ -1,5 +1,4 @@
 import json
-import time
 import execjs
 import requests
 from pprint import pprint
@@ -96,7 +95,6 @@ def checkout_word(word):
     # Return raw explain, a dict contains ['trans_result', 'dict_result', 'liju_result' , 'logid']
     return explain
 
-
 # Dumps word explain, for each *_result entry in raw explain
 def dumps_word_explain(explain):
     explain_dumps = dict()
@@ -109,106 +107,105 @@ def dumps_word_explain(explain):
             explain_dumps['_'.join([result, name])] = json.dumps(explain[result][name])
     return explain_dumps
 
-
-# Log method
-def _log(message, verbose=2):
-    if verbose > 0:
-        print('[{:10.10f}, {}]'.format(time.time(), message))
-
-
-class Session():
-    def __init__(self, tag='div', styles=[], contains=None):
-        style_src = ''
-        for style in styles:
-            style_src = '; '.join(['{name}:{param}'.format(name=name, param=style[name])
-            for name in style])
-        self.tag = tag
-        self.head = '<{tag} style=\"{style}\">'.format(tag=tag, style=style_src)
-        if contains:
-            self.contains = contains
-        else:
-            self.contains = []
-
-    def _string(self, obj):
-        if hasattr(obj, 'to_string'):
-            return obj.to_string()
-        if type(obj) is str:
-            return obj
-        print(obj)
-        raise TypeError('[TypeError] Only str and Session objects are accepted.')
-
-    def to_string(self):
-        if type(self.contains) is str:
-            lines = self.contains
-        else:
-            lines = '\n'.join(self._string(e) for e in self.contains)
-        return self.head + lines + '</{tag}>'.format(tag=self.tag)
-
-
 def parse_explain_dumps(explain_dumps):
     good_explain = explain_dumps.copy()
-    verbose = 2
     for name in explain_dumps:
-        rawjson = json.loads(explain_dumps[name])
-        _log(name, verbose)
-
-        # Ignore useless result
+        print(name)
         if name in [
             'trans_result_from',
             'trans_result_status',
             'trans_result_to',
             'trans_result_type',
             ]:
-            _log('Ignore')
             good_explain.pop(name)
 
-        # Quick Shoot
-        if name == 'trans_result_data':
-            # explains is a list
-            explains = rawjson
-            # pprint(explains)
-            sess = Session(tag='div', styles=[{'border': '1px solid blue'}])
-            for explain in explains:
-                sess.contains.append(Session(tag='p', contains='{src}, {dst}'.format(**explain)))
-            print(sess.to_string())
-            # Override
-            good_explain[name] = sess.to_string()
+        if name == 'dict_result_oxford':
+            mydict = json.loads(explain_dumps[name])
+            # pprint(mydict)
+            block = []
+            block.append('<div style="border:1px solid red;"><ol>')
+            block.append('</ol></div>')
+            pass
 
-        # Simple explain
-        if name == 'dict_result_simple_means':
-            # mydict is a dict
-            mydict = rawjson
+        if name == 'dict_result_collins':
+            mydict = json.loads(explain_dumps[name])
             pprint(mydict)
-            sess = Session(tag='div', styles=[{'border': '1px solid blue'}])
+            block = []
+            block.append('<div style="border:1px solid red;"><ol>')
+            for entry in mydict['entry']:
+                if entry['type'] == 'boxr':
+                    block.append('<div style="border:1px solid blue">')
+                    block.append('<p>{}</p>'.format(entry['value'][0]['boxr_value']))
+                    block.append('</div>')
+                if entry['type'] == 'mean':
+                    block.append('<li>{}, {}</li>'.format(entry['value'][0]['posp'][0]['label'], entry['value'][0]['tran']))
+                    block.append('<p>{}</p>'.format(entry['value'][0]['def']))
+                    block.append('<ul>')
+                    for value_dict in entry['value']:
+                        for example in value_dict['mean_type']:
+                            for example_dict in example.get('example', []):
+                                block.append('<li>{}</li><p>{}</p>'.format(example_dict['ex'], example_dict['tran']))
+                        block.append('</ul>')
+                if entry['type'] == 'rnon':
+                    block.append('<div style="border:1px solid green"><ul>')
+                    for value_dict in entry['value']:
+                        for mean in value_dict['mean']:
+                            for mean_type_dict in mean.get('mean_type', []):
+                                for example_dict in mean_type_dict.get('example', []):
+                                    block.append('<li><b>{}</b></li><p>{}</p><p>{}</p>'.format(entry['value'][0]['head_word'], example_dict['ex'], example_dict['tran']))
+                    block.append('</ul></div>')
 
-            mainbody = []
-            mainbody.append(Session(tag='p', contains='{word_name}'.format(**mydict)))
+            block.append('</ol></div>')
+            good_explain[name] = '\n'.join(block)
 
-            for symbol in mydict['symbols']:
-                mainbody.append(Session(tag='p', contains='ph_en: {ph_am}, ph_am: {ph_am}'.format(**symbol)))
-                for part in symbol['parts']:
-                    mainbody.append(Session(tag='p', contains='{part}, {means}'.format(**part)))
+        if name == 'trans_result_data':
+            mydict = json.loads(explain_dumps[name])[0]
+            # print(mydict)
+            block = []
+            block.append('<div style="border:1px solid red;">')
+            block.append('{}, {}'.format(mydict['src'], mydict['dst']))
+            block.append('</div>')
+            good_explain[name] = '\n'.join(block)
 
-            if mydict['exchange']:
-                mainbody.append(Session(tag='p', contains='Done: {word_done}, Ing: {word_ing}, Past: {word_past}, Third:{word_third}'.format(**mydict['exchange'])))
-            
-            if mydict['derivative']:
-                for derivative in mydict['derivative']:
-                    for data in derivative['data']:
-                        mainbody.append(Session(tag='p', contains='{text}'.format(data)))
+        if name == 'trans_result_phonetic':
+            mylist = json.loads(explain_dumps[name])
+            # print(mylist)
+            block = []
+            block.append('<div style="border:1px solid red;">')
+            block.append('<p>{}</p>'.format(' '.join([e['src_str'] for e in mylist])))
+            block.append('<p>{}</p>'.format(' '.join([e['trg_str'] for e in mylist])))
+            block.append('</div>')
+            good_explain[name] = '\n'.join(block)
 
-            # Override
-            sess.contains = mainbody
-            good_explain[name] = sess.to_string()
+
+        if name == 'dict_result_edict':
+            mydict = json.loads(explain_dumps[name])
+            # pprint(mydict)
+            block = []
+            block.append('<div style="border:1px solid red;">')
+            for item_dict in mydict['item']:
+                block.append('<ol>')
+                block.append('<b>{}</b>'.format(item_dict['pos']))
+                for entry in item_dict['tr_group']:
+                    # tr
+                    block.append('<li>{}</li>'.format(entry['tr'][0]))
+                    # example
+                    block.append('<ul>')
+                    [block.append('<li>{}</li>'.format(e)) for e in entry['example']]
+                    block.append('</ul>')
+                    # similar_word
+                    if entry['similar_word']:
+                        block.append('<p>Synonym: {}</p>'.format(', '.join(entry['similar_word'])))
+                block.append('</ol>')
+            block.append('</div>')
+            good_explain[name] = '\n'.join(block)
 
     return good_explain
-
 
 # Very backend explainer of the given word.
 # Continuely improve.
 def explain_word(word):
     return parse_explain_dumps(dumps_word_explain(checkout_word(word)))
-
 
 if __name__ == '__main__':
     word = random_word()
