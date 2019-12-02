@@ -148,22 +148,22 @@ class Session():
 def parse_explain_dumps(explain_dumps):
     good_explain = explain_dumps.copy()
     verbose = 2
-    for name in explain_dumps:
-        rawjson = json.loads(explain_dumps[name])
-        _log(name, verbose)
+    for block_name in explain_dumps:
+        rawjson = json.loads(explain_dumps[block_name])
+        _log(block_name, verbose)
 
         # Ignore useless result
-        if name in [
+        if block_name in [
             'trans_result_from',
             'trans_result_status',
             'trans_result_to',
             'trans_result_type',
             ]:
             _log('Ignore')
-            good_explain.pop(name)
+            good_explain.pop(block_name)
 
         # Quick Shoot
-        if name == 'trans_result_data':
+        if block_name == 'trans_result_data':
             # explains is a list
             explains = rawjson
             # pprint(explains)
@@ -172,10 +172,10 @@ def parse_explain_dumps(explain_dumps):
                 sess.contains.append(Session(tag='p', contains='{src}, {dst}'.format(**explain)))
             print(sess.to_string())
             # Override
-            good_explain[name] = sess.to_string()
+            good_explain[block_name] = sess.to_string()
 
         # Simple explain
-        if name == 'dict_result_simple_means':
+        if block_name == 'dict_result_simple_means':
             # mydict is a dict
             mydict = rawjson
             pprint(mydict)
@@ -187,19 +187,27 @@ def parse_explain_dumps(explain_dumps):
             for symbol in mydict['symbols']:
                 mainbody.append(Session(tag='p', contains='ph_en: {ph_am}, ph_am: {ph_am}'.format(**symbol)))
                 for part in symbol['parts']:
-                    mainbody.append(Session(tag='p', contains='{part}, {means}'.format(**part)))
+                    try:
+                        mainbody.append(Session(tag='p', contains='{part}, {means}'.format(**part)))
+                    except KeyError:
+                        mainbody.append(Session(tag='p', contains='{means}'.format(**part)))
 
-            if mydict['exchange']:
-                mainbody.append(Session(tag='p', contains='Done: {word_done}, Ing: {word_ing}, Past: {word_past}, Third:{word_third}'.format(**mydict['exchange'])))
-            
-            if mydict['derivative']:
+            if 'exchange' in mydict:
+                contains = []
+                exchange = mydict['exchange']
+                for name in exchange:
+                    contains.append('{}: {}'.format(name, ', '.join(exchange[name])))
+                mainbody.append(Session(tag='p', contains='; '.join(contains)))
+
+            if mydict.get('derivative', None):
                 for derivative in mydict['derivative']:
                     for data in derivative['data']:
                         mainbody.append(Session(tag='p', contains='{text}'.format(data)))
 
             # Override
             sess.contains = mainbody
-            good_explain[name] = sess.to_string()
+            print(sess.to_string())
+            good_explain[block_name] = sess.to_string()
 
     return good_explain
 
