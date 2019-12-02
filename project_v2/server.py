@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import webbrowser
 import urllib.parse
 from pprint import pprint
 from random_word import random_word
@@ -16,9 +17,10 @@ def wrap(label, content):
 class Resquest(BaseHTTPRequestHandler):
     def do_GET(self):
         print('-' * 80)
-        get = urllib.parse.urlparse(self.path)
-        print(get)
-        word = get.query
+        parsed_result = urllib.parse.urlparse(self.path)
+        print(parsed_result)
+        word = parsed_result.query
+        html_path = parsed_result.path[1:]
 
         Right_side_contents = []
         print(word)
@@ -34,7 +36,7 @@ class Resquest(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        with open(os.path.join('html_format', 'text.html'), 'r') as f:
+        with open(os.path.join('.', html_path), 'r') as f:
             s = f.readlines()
             html = ''.join(s).format(query_word=word, Right_side_contents='\n'.join(Right_side_contents))
 
@@ -44,6 +46,9 @@ class Resquest(BaseHTTPRequestHandler):
 if __name__ == '__main__':
     server = HTTPServer(host, Resquest)
     print("Starting server, listen at: %s:%s" % host)
+    url = 'http://%s:%s/checkout.html?[random]' % host
+    print("Open {} to start.".format(url))
+    webbrowser.open(url)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
