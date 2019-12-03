@@ -111,31 +111,28 @@ def dumps_word_explain(explain):
 
 
 # Log method
+verbose = 2
 def _log(message, verbose=2):
     if verbose > 0:
         print('[{:10.10f}, {}]'.format(time.time(), message))
 
 
-class Session():
-    def __init__(self, tag='div', styles=[], contains=None):
-        style_src = ''
-        for style in styles:
-            style_src = '; '.join(['{name}:{param}'.format(name=name, param=style[name])
-            for name in style])
-        self.tag = tag
-        self.head = '<{tag} style=\"{style}\">'.format(tag=tag, style=style_src)
+class Block():
+    def __init__(self, tag='div', style='', contains=[]):
+        self.head = '<{tag} style=\"{style}\">'.format(tag=tag, style=style)
         if contains:
             self.contains = contains
         else:
             self.contains = []
+        self.tag = tag
 
     def _string(self, obj):
-        if hasattr(obj, 'to_string'):
-            return obj.to_string()
         if type(obj) is str:
             return obj
+        if hasattr(obj, 'to_string'):
+            return obj.to_string()
         print(obj)
-        raise TypeError('[TypeError] Only str and Session objects are accepted.')
+        raise TypeError('[TypeError] Be sure contains can be transfered into string.')
 
     def to_string(self):
         if type(self.contains) is str:
@@ -145,69 +142,43 @@ class Session():
         return self.head + lines + '</{tag}>'.format(tag=self.tag)
 
 
+params = {
+    'ignore_sessions': [
+        'trans_result_from',
+        'trans_result_status',
+        'trans_result_to',
+        'trans_result_type',
+        ],
+    'session_style': 'border:1px solid blue;',
+}
+
+
 def parse_explain_dumps(explain_dumps):
     good_explain = explain_dumps.copy()
-    verbose = 2
-    for block_name in explain_dumps:
-        rawjson = json.loads(explain_dumps[block_name])
-        _log(block_name, verbose)
+    for session_name in explain_dumps:
+        _log(session_name)
+        rawjson = json.loads(explain_dumps[session_name])
 
         # Ignore useless result
-        if block_name in [
-            'trans_result_from',
-            'trans_result_status',
-            'trans_result_to',
-            'trans_result_type',
-            ]:
-            _log('Ignore')
-            good_explain.pop(block_name)
+        if session_name in params['ignore_sessions']:
+            _log('Ignore {}'.format(session_name))
+            good_explain.pop(session_name)
+            continue
 
         # Quick Shoot
-        if block_name == 'trans_result_data':
+        if session_name == 'trans_result_data':
             # explains is a list
             explains = rawjson
             # pprint(explains)
-            sess = Session(tag='div', styles=[{'border': '1px solid blue'}])
+            bloc = Block(style=params['session_style'])
             for explain in explains:
-                sess.contains.append(Session(tag='p', contains='{src}, {dst}'.format(**explain)))
-            print(sess.to_string())
+                bloc.contains.append(Block(tag='p', contains='{src}, {dst}'.format(**explain)))
+            print(bloc.to_string())
             # Override
-            good_explain[block_name] = sess.to_string()
+            good_explain[session_name] = bloc.to_string()
+            continue
 
-        # Simple explain
-        if block_name == 'dict_result_simple_means':
-            # mydict is a dict
-            mydict = rawjson
-            pprint(mydict)
-            sess = Session(tag='div', styles=[{'border': '1px solid blue'}])
-
-            mainbody = []
-            mainbody.append(Session(tag='p', contains='{word_name}'.format(**mydict)))
-
-            for symbol in mydict['symbols']:
-                mainbody.append(Session(tag='p', contains='ph_en: {ph_am}, ph_am: {ph_am}'.format(**symbol)))
-                for part in symbol['parts']:
-                    try:
-                        mainbody.append(Session(tag='p', contains='{part}, {means}'.format(**part)))
-                    except KeyError:
-                        mainbody.append(Session(tag='p', contains='{means}'.format(**part)))
-
-            if 'exchange' in mydict:
-                contains = []
-                exchange = mydict['exchange']
-                for name in exchange:
-                    contains.append('{}: {}'.format(name, ', '.join(exchange[name])))
-                mainbody.append(Session(tag='p', contains='; '.join(contains)))
-
-            if mydict.get('derivative', None):
-                for derivative in mydict['derivative']:
-                    for data in derivative['data']:
-                        mainbody.append(Session(tag='p', contains='{text}'.format(data)))
-
-            # Override
-            sess.contains = mainbody
-            print(sess.to_string())
-            good_explain[block_name] = sess.to_string()
+        good_explain.pop(session_name)
 
     return good_explain
 
