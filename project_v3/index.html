@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8"></meta>
+    <title> {--query_word--} </title>
+</head>
+
+<body>
+    <h1> Checkout: {--query_word--} </h1>
+    <div id="baidu-float" style="position:fixed; top:8%; left:20px; float:left; margin-right:20px; width:575px; height:90%; overflow:hidden; overflow-x:auto;">
+        <iframe src="https://fanyi.baidu.com/#en/zh/{--query_word--}" width="110%" height="100%" scrolling="auto">
+        </iframe>
+    </div>
+
+    <div id="Right-div" style="position:absolute; left:700px; width:600px;">
+        <h1 align="center"> Right side contents </h1>
+        <h2 id="Global-time"> Global time </h2>
+        <h2 id="Remainseconds"> Remainseconds </h2>
+        {--Right_side_contents--}
+    </div>
+
+    <script src="local.js" type="text/javascript"></script>
+</body>
+
+</html>
