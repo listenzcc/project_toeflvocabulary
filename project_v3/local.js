@@ -1,7 +1,8 @@
 var remain = 0
 
 function startTimer() {
-    remain = 0
+    remain = 3
+    doInterval()
     setInterval("doInterval()", 1000)
 }
 
@@ -28,5 +29,5 @@ function hideBaidu() {
     document.getElementById("baidu-float").style.visibility = 'hidden';
 }
 
+hideBaidu()
 startTimer()
-remain = 3

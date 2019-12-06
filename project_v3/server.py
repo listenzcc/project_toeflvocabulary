@@ -47,7 +47,7 @@ class Resquest(BaseHTTPRequestHandler):
 if __name__ == '__main__':
     server = HTTPServer(host, Resquest)
     print("Starting server, listen at: %s:%s" % host)
-    url = 'http://%s:%s/index.html?[random]' % host
+    url = 'http://%s:%s/checkword.html?[random]' % host
     print("Open {} to start.".format(url))
     webbrowser.open(url)
     try:
