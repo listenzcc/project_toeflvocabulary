@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!--meta charset="utf-8"></meta-->
+    <title> {--query_word--} </title>
+    <link rel="stylesheet" href="style.css" type="text/css"></link>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+</head>
+
+<body>
+    <div id="TransDiv">
+        <iframe src="https://cn.bing.com/dict/search?q=abandon" width="1200px" height="100%" scrolling="auto">
+        </iframe>
+    </div>
+
+    <div id="BarDiv">
+    <!-- style="position:absolute; top:22px; left:22px; width:1200px; height:150px; background:cyan;"-->
+        <h1> {--query_word--} </h1>
+    </div>
+
+    <div id="SideDiv">
+        <h1 align="center"> Right side contents </h1>
+        {--Right_side_contents--}
+    </div>
+
+    <script type="text/javascript">
+        console.log(1)
+        d3.json("vocabulary5000_all_words.json", function(data) {
+            for (var i = 0; i < data.length; i++) {
+                console.log(data[i].Name);
+                console.log(data[i].Age);
+                }
+        });
+    </script>
+
+</body>
+
+</html>
