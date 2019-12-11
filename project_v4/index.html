@@ -6,6 +6,7 @@
     <title> {--query_word--} </title>
     <link rel="stylesheet" href="style.css" type="text/css"></link>
     <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="local_tools.js"></script>
 </head>
 
 <body>
@@ -16,47 +17,15 @@
 
     <div id="BarDiv">
         <h1 id="QueryWord"> {--query_word--} </h1>
+        <svg>
+        <line id="TimerLine"></line>
+        </svg>
     </div>
 
     <div id="SideDiv">
         <h1 align="center"> Right side contents </h1>
         {--Right_side_contents--}
     </div>
-
-    <script type="text/javascript">
-        d3.json("vocabulary5000_all_words.json").then(function(data) {
-            // Random fetch word
-            var query_word = data[parseInt(d3.randomUniform(data.length)())]
-            console.log(query_word)
-            // Setup objects
-            d3.select("#QueryWord")
-            .text(query_word)
-            d3.select("#TransFrame")
-            .style("visibility", "hidden")
-            .attr("src", "https://cn.bing.com/dict/search?q="+query_word)
-            // Step for timer
-            var line = d3.select("#BarDiv")
-            .append("svg")
-            .style("width", 1000)
-            .append("line")
-            .attr("x1", 0)
-            .attr("y1", 20)
-            .attr("x2", 300)
-            .attr("y2", 20)
-            .style("stroke", "#000000")
-            .style("stroke-width", 5)
-
-            line.transition()
-            .duration(5000)
-            .attr("x2", 0)
-
-            // Draw answer after 5 seconds
-            setTimeout(function() {
-                d3.select("#TransFrame")
-                .style("visibility", "visible")
-            }, 5000)
-        });
-    </script>
 
 </body>
 

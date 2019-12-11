@@ -1,29 +1,31 @@
-#TransDiv
-{
-    position:absolute;
-    top:20px;
-    left:20px;
-    width:1000px;
-    height:90%;
-    overflow:hidden;
+#TransDiv {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 1000px;
+    height: 90%;
+    overflow: hidden;
 }
 
-#BarDiv
-{
-    position:absolute;
-    top:22px;
-    left:22px;
-    width:1000px;
-    height:150px;
-    background:cyan;
+#BarDiv {
+    position: absolute;
+    top: 22px;
+    left: 22px;
+    width: 1000px;
+    height: 150px;
+    background: cyan;
 }
 
-#SideDiv
-{
-    position:absolute;
-    top:22px;
-    left:700px;
-    width:600px;
-    height:90%;
-    background:gray;
+#TimerLine {
+    stroke: #000000;
+    stroke-width: 5;
+}
+
+#SideDiv {
+    position: absolute;
+    top: 22px;
+    left: 700px;
+    width: 600px;
+    height: 90%;
+    background: gray;
 }
