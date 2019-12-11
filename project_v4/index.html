@@ -10,13 +10,12 @@
 
 <body>
     <div id="TransDiv">
-        <iframe src="https://cn.bing.com/dict/search?q=abandon" width="1200px" height="100%" scrolling="auto">
+        <iframe id="TransFrame" width="1200px" height="100%" scrolling="auto">
         </iframe>
     </div>
 
     <div id="BarDiv">
-    <!-- style="position:absolute; top:22px; left:22px; width:1200px; height:150px; background:cyan;"-->
-        <h1> {--query_word--} </h1>
+        <h1 id="QueryWord"> {--query_word--} </h1>
     </div>
 
     <div id="SideDiv">
@@ -25,12 +24,37 @@
     </div>
 
     <script type="text/javascript">
-        console.log(1)
-        d3.json("vocabulary5000_all_words.json", function(data) {
-            for (var i = 0; i < data.length; i++) {
-                console.log(data[i].Name);
-                console.log(data[i].Age);
-                }
+        d3.json("vocabulary5000_all_words.json").then(function(data) {
+            // Random fetch word
+            var query_word = data[parseInt(d3.randomUniform(data.length)())]
+            console.log(query_word)
+            // Setup objects
+            d3.select("#QueryWord")
+            .text(query_word)
+            d3.select("#TransFrame")
+            .style("visibility", "hidden")
+            .attr("src", "https://cn.bing.com/dict/search?q="+query_word)
+            // Step for timer
+            var line = d3.select("#BarDiv")
+            .append("svg")
+            .style("width", 1000)
+            .append("line")
+            .attr("x1", 0)
+            .attr("y1", 20)
+            .attr("x2", 300)
+            .attr("y2", 20)
+            .style("stroke", "#000000")
+            .style("stroke-width", 5)
+
+            line.transition()
+            .duration(5000)
+            .attr("x2", 0)
+
+            // Draw answer after 5 seconds
+            setTimeout(function() {
+                d3.select("#TransFrame")
+                .style("visibility", "visible")
+            }, 5000)
         });
     </script>
 
